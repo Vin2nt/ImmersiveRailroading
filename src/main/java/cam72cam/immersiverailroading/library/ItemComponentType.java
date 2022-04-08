@@ -194,6 +194,16 @@ public enum ItemComponentType {
 	}
 	
 	public boolean isWooden(EntityRollingStockDefinition definition) {
+		if (this.render.get(0) == null) {
+			System.out.println(this);
+			System.out.println(definition.defID);
+			System.out.println("WTF NULL RENDER");
+		}
+		if (definition.getComponents(this.render.get(0)) == null) {
+			System.out.println(this);
+			System.out.println(definition.defID);
+			System.out.println("WTF invalid mapping");
+		}
 		ModelComponent component = definition.getComponents(this.render.get(0)).get(0);
 		return component.wooden;
 	}

@@ -14,7 +14,6 @@ import cam72cam.mod.entity.sync.TagSync;
 import cam72cam.mod.entity.custom.*;
 import cam72cam.mod.item.ClickResult;
 import cam72cam.mod.item.Fuzzy;
-import cam72cam.mod.item.ItemStack;
 import cam72cam.mod.math.Vec3d;
 import cam72cam.mod.resource.Identifier;
 import cam72cam.mod.serialization.*;
@@ -23,7 +22,6 @@ import cam72cam.mod.sound.ISound;
 import cam72cam.mod.text.PlayerMessage;
 import cam72cam.mod.util.SingleCache;
 import org.apache.commons.lang3.tuple.Pair;
-import trackapi.lib.Gauges;
 import util.Matrix4;
 
 import java.util.HashMap;
@@ -200,9 +198,6 @@ public class EntityRollingStock extends CustomEntity implements ITickable, IClic
 		return false;
 	}
 	*/
-
-	public void triggerResimulate() {
-	}
 
 	public float soundScale() {
 		return this.getDefinition().shouldScalePitch() ? (float) Math.sqrt(Math.sqrt(gauge.scale())) : 1;

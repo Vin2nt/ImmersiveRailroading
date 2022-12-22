@@ -71,6 +71,8 @@ public abstract class EntityRollingStockDefinition {
     private float bogeyRear;
     private float couplerOffsetFront;
     private float couplerOffsetRear;
+    private float couplerSlackFront;
+    private float couplerSlackRear;
     private boolean scalePitch;
     private double frontBounds;
     private double rearBounds;
@@ -159,8 +161,8 @@ public abstract class EntityRollingStockDefinition {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
-        frontBounds = -model.minOfGroup(model.groups()).x + couplerOffsetFront;
-        rearBounds = model.maxOfGroup(model.groups()).x + couplerOffsetRear;
+        frontBounds = -model.minOfGroup(model.groups()).x;
+        rearBounds = model.maxOfGroup(model.groups()).x;
         widthBounds = model.widthOfGroups(model.groups());
 
         // Bad hack for height bounds
@@ -204,6 +206,23 @@ public abstract class EntityRollingStockDefinition {
     public boolean shouldScalePitch() {
         return ConfigSound.scaleSoundToGauge && scalePitch;
     }
+
+    protected static String getOrDefault(JsonObject data, String field, String fallback) {
+        return data.has(field) ? data.get(field).getAsString() : fallback;
+    }
+    protected static boolean getOrDefault(JsonObject data, String field, boolean fallback) {
+        return data.has(field) ? data.get(field).getAsBoolean() : fallback;
+    }
+    protected static int getOrDefault(JsonObject data, String field, int fallback) {
+        return data.has(field) ? data.get(field).getAsInt() : fallback;
+    }
+    protected static float getOrDefault(JsonObject data, String field, float fallback) {
+        return data.has(field) ? data.get(field).getAsFloat() : fallback;
+    }
+    protected static double getOrDefault(JsonObject data, String field, double fallback) {
+        return data.has(field) ? data.get(field).getAsDouble() : fallback;
+    }
+
 
     public void parseJson(JsonObject data) throws Exception {
         name = data.get("name").getAsString();
@@ -281,9 +300,14 @@ public abstract class EntityRollingStockDefinition {
             scalePitch = data.get("scale_pitch").getAsBoolean();
         }
 
+        couplerSlackFront = couplerSlackRear = 0.05f;
+
         if (data.has("couplers")) {
-            couplerOffsetFront = (float) (data.get("couplers").getAsJsonObject().get("front_offset").getAsFloat() * internal_model_scale);
-            couplerOffsetRear = (float) (data.get("couplers").getAsJsonObject().get("rear_offset").getAsFloat() * internal_model_scale);
+            JsonObject couplers = data.get("couplers").getAsJsonObject();
+            couplerOffsetFront = getOrDefault(couplers, "front_offset", 0f) * (float) internal_model_scale;
+            couplerOffsetRear = getOrDefault(couplers, "rear_offset", 0f) * (float) internal_model_scale;
+            couplerSlackFront = getOrDefault(couplers, "front_slack", couplerSlackFront) * (float) internal_model_scale;
+            couplerSlackRear = getOrDefault(couplers, "rear_slack", couplerSlackRear) * (float) internal_model_scale;
         }
 
         JsonObject properties = data.get("properties").getAsJsonObject();
@@ -403,14 +427,24 @@ public abstract class EntityRollingStockDefinition {
 
     public double getCouplerPosition(CouplerType coupler, Gauge gauge) {
         switch (coupler) {
-            case FRONT:
-                return gauge.scale() * (this.frontBounds);
-            case BACK:
-                return gauge.scale() * (this.rearBounds);
             default:
-                return 0;
+            case FRONT:
+                return gauge.scale() * (this.frontBounds + couplerOffsetFront);
+            case BACK:
+                return gauge.scale() * (this.rearBounds + couplerOffsetRear);
         }
     }
+
+    public double getCouplerSlack(CouplerType coupler, Gauge gauge) {
+        switch (coupler) {
+            default:
+            case FRONT:
+                return gauge.scale() * (this.couplerSlackFront);
+            case BACK:
+                return gauge.scale() * (this.couplerSlackRear);
+        }
+    }
+
 
     public boolean hasIndependentBrake() {
         return hasIndependentBrake;
@@ -565,9 +599,9 @@ public abstract class EntityRollingStockDefinition {
         return heightmap.apply(stock);
     }
 
-    public RealBB getBounds(EntityMoveableRollingStock stock, Gauge gauge) {
+    public RealBB getBounds(float yaw, Gauge gauge) {
         return new RealBB(gauge.scale() * frontBounds, gauge.scale() * -rearBounds, gauge.scale() * widthBounds,
-                gauge.scale() * heightBounds, stock.getRotationYaw()).offset(stock.getPosition());
+                gauge.scale() * heightBounds, yaw);
     }
 
     public String name() {

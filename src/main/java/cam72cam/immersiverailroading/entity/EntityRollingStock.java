@@ -3,6 +3,7 @@ package cam72cam.immersiverailroading.entity;
 import cam72cam.immersiverailroading.Config.ConfigDamage;
 import cam72cam.immersiverailroading.IRItems;
 import cam72cam.immersiverailroading.ImmersiveRailroading;
+import cam72cam.immersiverailroading.items.ItemPaintBrush;
 import cam72cam.immersiverailroading.library.*;
 import cam72cam.immersiverailroading.model.part.Control;
 import cam72cam.immersiverailroading.registry.DefinitionManager;
@@ -115,7 +116,8 @@ public class EntityRollingStock extends CustomEntity implements ITickable, IClic
 	@Override
 	public ClickResult onClick(Player player, Player.Hand hand) {
 		if (player.getHeldItem(hand).is(IRItems.ITEM_PAINT_BRUSH) && player.hasPermission(Permissions.PAINT_BRUSH)) {
-			return selectNewTexture(player, player.getHeldItem(hand));
+			ItemPaintBrush.onStockInteract(this, player, hand);
+			return ClickResult.ACCEPTED;
 		}
 
 		if (player.getHeldItem(hand).is(Fuzzy.NAME_TAG) && player.hasPermission(Permissions.STOCK_ASSEMBLY)) {
@@ -129,18 +131,8 @@ public class EntityRollingStock extends CustomEntity implements ITickable, IClic
 		return ClickResult.PASS;
 	}
 
-	private ClickResult selectNewTexture(Player player, ItemStack item) {
-		if (getWorld().isClient) {
-			return ClickResult.ACCEPTED;
-		}
-
-		if (this.getDefinition().textureNames.size() > 1) {
-			this.texture = IRItems.ITEM_PAINT_BRUSH.selectNewTexture(this.getDefinition().textureNames, this.texture, player, item);
-			return ClickResult.ACCEPTED;
-		} else {
-			player.sendMessage(ChatText.BRUSH_NO_VARIANTS.getMessage());
-			return ClickResult.PASS;
-		}
+	public void setTexture(String variant) {
+		this.texture = variant;
 	}
 
 	@Override

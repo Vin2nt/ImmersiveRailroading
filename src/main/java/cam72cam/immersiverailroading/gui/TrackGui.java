@@ -33,6 +33,8 @@ import static cam72cam.immersiverailroading.gui.ClickListHelper.next;
 import static cam72cam.immersiverailroading.gui.components.GuiUtils.fitString;
 
 public class TrackGui implements IScreen {
+	long frame;
+
 	private TileRailPreview te;
 	private Button typeButton;
 	private TextField lengthInput;
@@ -57,6 +59,8 @@ public class TrackGui implements IScreen {
 	private ListSelector<TrackDefinition>  trackSelector;
 	private ListSelector<ItemStack> railBedSelector;
 	private ListSelector<ItemStack> railBedFillSelector;
+
+	private double zoom = 1;
 
 	public TrackGui() {
 		this(MinecraftClient.getPlayer().getHeldItem(Player.Hand.PRIMARY));
@@ -283,6 +287,12 @@ public class TrackGui implements IScreen {
 		};
 		ytop += height;
 
+		Slider zoom_slider = new Slider(screen, GUIHelpers.getScreenWidth() / 2 - 150, (int) (GUIHelpers.getScreenHeight()*0.75 - height), "Zoom: ", 0.1, 2, 1, true) {
+			@Override
+			public void onSlider() {
+				zoom = this.getValue();
+			}
+		};
 	}
 
 	private void showSelector(ListSelector<?> selector) {
@@ -314,9 +324,8 @@ public class TrackGui implements IScreen {
 	}
 
 	@Override
-	public void draw(IScreenBuilder builder) {
-		long frame = MinecraftClient.getPlayer().getWorld().getTicks() * 20; //TODO actuall frame tracking
-
+	public void draw(IScreenBuilder builder, RenderState state) {
+		frame++;
 
 		GUIHelpers.drawRect(200, 0, GUIHelpers.getScreenWidth() - 200, GUIHelpers.getScreenHeight(), 0xCC000000);
 		GUIHelpers.drawRect(0, 0, 200, GUIHelpers.getScreenHeight(), 0xEE000000);
@@ -327,9 +336,8 @@ public class TrackGui implements IScreen {
 
 			RailInfo info = new RailInfo(settings.build().withLength(5).withType(TrackItems.STRAIGHT), new PlacementInfo(new Vec3d(0.5, 0, 0.5), TrackDirection.NONE, 0, null), null, SwitchState.NONE, SwitchState.NONE, 0, true);
 
-			double scale = GUIHelpers.getScreenWidth() / 12.0;
+			double scale = GUIHelpers.getScreenWidth() / 12.0 * zoom;
 
-			RenderState state = new RenderState();
 			state.translate(300 + (GUIHelpers.getScreenWidth() - 300) / 2, builder.getHeight(), 100);
 			state.rotate(90, 1, 0, 0);
 			state.scale(-scale, scale, scale);
@@ -364,9 +372,8 @@ public class TrackGui implements IScreen {
 
 			RailInfo info = new RailInfo(settings.build().withLength(3).withType(TrackItems.STRAIGHT), new PlacementInfo(new Vec3d(0.5, 0, 0.5), TrackDirection.NONE, 0, null), null, SwitchState.NONE, SwitchState.NONE, 0, true);
 
-			double scale = GUIHelpers.getScreenWidth() / 15.0;
+			double scale = GUIHelpers.getScreenWidth() / 15.0 * zoom;
 
-			RenderState state = new RenderState();
 			state.translate(450 + (GUIHelpers.getScreenWidth() - 450) / 2, builder.getHeight()/2, 500);
 			state.rotate(90, 1, 0, 0);
 			state.scale(-scale, scale, scale);
@@ -375,7 +382,7 @@ public class TrackGui implements IScreen {
 			state.rotate(60, 1, 0, 0);
 
 			state.translate(0, 0, 1);
-			state.rotate(frame/30.0, 0, 1, 0);
+			state.rotate(frame/2.0, 0, 1, 0);
 			state.translate(0, 0, -1);
 
 			RailBuilderRender.renderRailBuilder(info, MinecraftClient.getPlayer().getWorld(), state);
@@ -409,14 +416,13 @@ public class TrackGui implements IScreen {
 			length = Math.min(25, Math.max(10, length));
 		}
 
-		RailInfo info = new RailInfo(settings.build().withLength(length), new PlacementInfo(new Vec3d(0.5, 0, 0.5), settings.direction, 0, null), null, SwitchState.NONE, SwitchState.NONE, settings.type == TrackItems.TURNTABLE ? (frame/20.0) % 360 : 0, true);
+		RailInfo info = new RailInfo(settings.build().withLength(length), new PlacementInfo(new Vec3d(0.5, 0, 0.5), settings.direction, 0, null), null, SwitchState.NONE, SwitchState.NONE, settings.type == TrackItems.TURNTABLE ? (frame/2.0) % 360 : 0, true);
 
-		double scale = (GUIHelpers.getScreenWidth() / (length * 2.25));
+		double scale = (GUIHelpers.getScreenWidth() / (length * 2.25)) * zoom;
 		if (settings.type == TrackItems.TURNTABLE) {
 			scale /= 2;
 		}
 
-		RenderState state = new RenderState();
 		state.translate(200 + (GUIHelpers.getScreenWidth() - 200) / 2, builder.getHeight() - 30, 100);
 		state.rotate(90, 1, 0, 0);
 		state.scale(-scale, scale, scale);

@@ -6,8 +6,10 @@ import cam72cam.immersiverailroading.entity.EntityBuildableRollingStock;
 import cam72cam.immersiverailroading.entity.EntityCoupleableRollingStock.CouplerType;
 import cam72cam.immersiverailroading.entity.EntityRollingStock;
 import cam72cam.immersiverailroading.gui.overlay.GuiBuilder;
+import cam72cam.immersiverailroading.gui.overlay.Readouts;
 import cam72cam.immersiverailroading.library.*;
 import cam72cam.immersiverailroading.model.StockModel;
+import cam72cam.immersiverailroading.model.animation.Animatrix;
 import cam72cam.immersiverailroading.model.components.ModelComponent;
 import cam72cam.immersiverailroading.util.RealBB;
 import cam72cam.mod.entity.EntityRegistry;
@@ -22,6 +24,7 @@ import cam72cam.mod.serialization.TagField;
 import cam72cam.mod.serialization.TagMapped;
 import cam72cam.mod.text.TextUtil;
 import cam72cam.mod.world.World;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -58,10 +61,10 @@ public abstract class EntityRollingStockDefinition {
     private String name;
     private String modelerName;
     private String packName;
-    private ValveGearType valveGear;
+    private ValveGearConfig valveGear;
     public float darken;
     public Identifier modelLoc;
-    protected StockModel<?> model;
+    protected StockModel<?, ?> model;
     private Vec3d passengerCenter;
     private float bogeyFront;
     private float bogeyRear;
@@ -94,6 +97,66 @@ public abstract class EntityRollingStockDefinition {
     private double swayMultiplier;
     private double tiltMultiplier;
     private float brakeCoefficient;
+
+    public List<AnimationDefinition> animations;
+
+    public static class AnimationDefinition {
+        public enum AnimationMode {
+            VALUE,
+            LOOP,
+            LOOP_SPEED
+        }
+        public final String control_group;
+        public final AnimationMode mode;
+        public final Readouts readout;
+        public final Animatrix animatrix;
+        public final float offset;
+        public final boolean invert;
+        public final float frames_per_tick;
+
+        public AnimationDefinition(JsonObject obj) throws IOException {
+            control_group = obj.has("control_group") ? obj.get("control_group").getAsString() : null;
+            mode = obj.has("mode") ? AnimationMode.valueOf(obj.get("mode").getAsString().toUpperCase(Locale.ROOT)) : null;
+            readout = obj.has("readout") ? Readouts.valueOf(obj.get("readout").getAsString().toUpperCase(Locale.ROOT)) : null;
+            animatrix = obj.has("animatrix") ? new Animatrix(new Identifier(obj.get("animatrix").getAsString()).getResourceStream(), mode != AnimationMode.VALUE) : null;
+            offset = obj.has("offset") ? obj.get("offset").getAsFloat() : 0;
+            invert = obj.has("invert") && obj.get("invert").getAsBoolean();
+            frames_per_tick = obj.has("frames_per_tick") ? obj.get("frames_per_tick").getAsFloat() : 0;
+        }
+
+        public boolean valid() {
+            return animatrix != null && (control_group != null || readout != null);
+        }
+
+        public float getPercent(EntityRollingStock stock) {
+            float value = control_group != null ? stock.getControlPosition(control_group) : readout.getValue(stock);
+            value += offset;
+            if (invert) {
+                value = 1-value;
+            }
+
+            switch (mode) {
+                case VALUE:
+                    return value;
+                case LOOP:
+                    if (value <= 0.95) {
+                        return 0;
+                    }
+                    break;
+                case LOOP_SPEED:
+                    if (value == 0) {
+                        return 0;
+                    }
+                    break;
+            }
+
+            float total_ticks_per_loop = animatrix.frameCount() / frames_per_tick;
+            if (mode == AnimationMode.LOOP_SPEED) {
+                total_ticks_per_loop /= value;
+            }
+            return (stock.getTickCount() % total_ticks_per_loop) / total_ticks_per_loop;
+        }
+    }
 
     public static class LightDefinition {
         public static final Identifier default_light_tex = new Identifier(ImmersiveRailroading.MODID, "textures/light.png");
@@ -311,7 +374,7 @@ public abstract class EntityRollingStockDefinition {
 
         JsonObject properties = data.get("properties").getAsJsonObject();
         weight = (int) Math.ceil(properties.get("weight_kg").getAsInt() * internal_inv_scale);
-        valveGear = properties.has("valve_gear") ? ValveGearType.from(properties.get("valve_gear").getAsString().toUpperCase(Locale.ROOT)) : null;
+        valveGear = properties.has("valve_gear") ? new ValveGearConfig(properties.get("valve_gear").getAsString()) : null;
         hasIndependentBrake = getOrDefault(properties, "independent_brake", independentBrakeDefault());
         // Locomotives default to linear brake control
         isLinearBrakeControl = getOrDefault(properties, "linear_brake_control", !(this instanceof LocomotiveDefinition));
@@ -368,6 +431,14 @@ public abstract class EntityRollingStockDefinition {
             }
             if (particles.has("steam")) {
                 steamParticleTexture = new Identifier(particles.get("steam").getAsJsonObject().get("texture").getAsString());
+            }
+        }
+
+        animations = new ArrayList<>();
+        if (data.has("animations")) {
+            JsonArray aobj = data.getAsJsonArray("animations");
+            for (JsonElement entry : aobj) {
+                animations.add(new AnimationDefinition(entry.getAsJsonObject()));
             }
         }
     }
@@ -616,10 +687,10 @@ public abstract class EntityRollingStockDefinition {
         return tips;
     }
 
-    protected StockModel<?> createModel() throws Exception {
+    protected StockModel<?, ?> createModel() throws Exception {
         return new StockModel<>(this);
     }
-    public StockModel<?> getModel() {
+    public StockModel<?, ?> getModel() {
         return this.model;
     }
 
@@ -664,7 +735,7 @@ public abstract class EntityRollingStockDefinition {
         }
     }
 
-    public ValveGearType getValveGear() {
+    public ValveGearConfig getValveGear() {
         return valveGear;
     }
 

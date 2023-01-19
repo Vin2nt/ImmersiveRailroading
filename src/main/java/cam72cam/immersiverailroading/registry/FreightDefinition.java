@@ -19,7 +19,7 @@ public abstract class FreightDefinition extends EntityRollingStockDefinition {
     }
 
     @Override
-    protected StockModel<?> createModel() throws Exception {
+    protected StockModel<?, ?> createModel() throws Exception {
         return new FreightModel<>(this);
     }
 

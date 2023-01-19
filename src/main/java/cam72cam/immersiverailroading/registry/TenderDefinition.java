@@ -48,7 +48,7 @@ public class TenderDefinition extends CarTankDefinition {
     }
 
     @Override
-    protected StockModel<?> createModel() throws Exception {
+    protected StockModel<?, ?> createModel() throws Exception {
         return new FreightTankModel<>(this);
     }
 }

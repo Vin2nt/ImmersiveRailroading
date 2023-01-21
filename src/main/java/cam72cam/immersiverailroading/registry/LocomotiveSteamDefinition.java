@@ -18,6 +18,7 @@ public class LocomotiveSteamDefinition extends LocomotiveDefinition {
     public Identifier idle;
     public Identifier chuff;
     public Identifier pressure;
+    public Identifier cyliner_drain;
     private FluidQuantity tankCapacity;
     private int maxPSI;
     private int numSlots;
@@ -56,6 +57,9 @@ public class LocomotiveSteamDefinition extends LocomotiveDefinition {
         chuff = new Identifier(ImmersiveRailroading.MODID, "sounds/steam/default/chuff.ogg");
         pressure = new Identifier(ImmersiveRailroading.MODID, "sounds/steam/default/pressure.ogg");
         bell = new Identifier(ImmersiveRailroading.MODID, "sounds/steam/default/bell.ogg");
+        cyliner_drain = new Identifier(ImmersiveRailroading.MODID, "sounds/steam/default/cylinder_drain.ogg");
+
+        boolean whistleSet = false;
 
         JsonObject sounds = data.has("sounds") ? data.get("sounds").getAsJsonObject() : null;
         //overrides original sounds with added sounds
@@ -65,6 +69,7 @@ public class LocomotiveSteamDefinition extends LocomotiveDefinition {
             chuff = getOrDefault(sounds, "chuff", chuff);
             pressure = getOrDefault(sounds, "pressure", pressure);
             bell = getOrDefault(sounds, "bell", bell);
+            cyliner_drain = getOrDefault(sounds, "cylinder_drain", cyliner_drain);
 
             if (sounds.has("quilling")) {
                 quill = new Quilling(sounds.get("quilling").getAsJsonArray());

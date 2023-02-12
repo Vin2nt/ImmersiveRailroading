@@ -460,6 +460,7 @@ public class TileRailBase extends BlockEntityTrackTickable implements IRedstoneP
 		return null;
 	}
 
+	/*
 	@Override
 	public ITank getTank(Facing side) {
 		if (this.getAugment() != null) {
@@ -477,7 +478,7 @@ public class TileRailBase extends BlockEntityTrackTickable implements IRedstoneP
 			}
 		}
 		return null;
-	}
+	}*/
 
 	@Override
 	public void update() {
